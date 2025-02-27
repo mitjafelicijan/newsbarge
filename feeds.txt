@@ -4,7 +4,8 @@ https://www.computerenhance.com/feed
 https://tratt.net/laurie/news.rss
 https://willhbr.net/feed.xml
 https://andrewkelley.me/rss.xml
-https://beyondloom.com/blog/rss.xml
+
+everthing that is not a valid url is ignored
 
 http://feeds2.feedburner.com/JupiterBroadcasting
 https://www.youtube.com/feeds/videos.xml?channel_id=UCJetJ7nDNLlEzDLXv7KIo0w
