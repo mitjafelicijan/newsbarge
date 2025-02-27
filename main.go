@@ -73,7 +73,7 @@ func (p *Payload) parseFeed(feedUrl string) error {
 		return err
 	}
 
-	log.Println(feedUrl)
+	log.Printf("parse %s", feedUrl)
 
 	for _, item := range feed.Items {
 		if item.PublishedParsed == nil {
@@ -177,4 +177,5 @@ func main() {
 	file, _ := content.ReadFile("template.html")
 	tmpl, _ := template.New("").Parse(string(file))
 	tmpl.Execute(outFile, payload)
+	log.Printf("export file://%s", outPath)
 }
