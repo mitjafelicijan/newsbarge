@@ -6,3 +6,5 @@ https://willhbr.net/feed.xml
 https://andrewkelley.me/rss.xml
 https://beyondloom.com/blog/rss.xml
 
+http://feeds2.feedburner.com/JupiterBroadcasting
+https://www.youtube.com/feeds/videos.xml?channel_id=UCJetJ7nDNLlEzDLXv7KIo0w
