@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>newsbarge</title>
+		<meta name="viewport" content="width=device-width,initial-scale=1">
+		<style>
+			details > summary { cursor: pointer; }
+			details > div { padding-left: 4em; padding-bottom: 1em; }
+			audio { min-width: 40em; margin-bottom: 1em; }
+			.gray { color: gray; }
+		</style>
+	</head>
+	<body>
+		<h1>Recent week</h1>
+
+		{{ range .Items }}
+		<details>
+			<summary>{{ if .AudioUrl }}<mark>podcast</mark>{{ end }} {{ .Title }} <span class="gray">({{ .Author }} at {{ .PubDate }})</span></summary>
+			<div>
+				<h2>{{ .Title }}</h2>
+				<p><a href="{{ .Url }}" target="_blank">{{ .Url }}</a></p>
+
+				{{ if .AudioUrl }}
+				<div>
+					<audio controls>
+						<source src="{{ .AudioUrl }}" type="audio/mpeg">
+						Your browser does not support the audio element.
+					</audio>
+				</div>
+				{{ end }}
+				<div>{{ .Content }}</div>
+			</div>
+		</details>
+		{{ end }}
+	</body>
+</html>
+
