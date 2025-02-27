@@ -11,21 +11,26 @@ import (
 	"strings"
 	"text/template"
 	"time"
+	"crypto/md5"
+	"encoding/hex"
 
 	"github.com/mmcdole/gofeed"
 )
 
-//go:embed template.html
+//go:embed templates/simple.html
+//go:embed templates/advanced.html
 var content embed.FS
 
 type Item struct {
-	Title    string
-	Author   string
-	Url      string
-	UnixTime int64
-	Content  string
-	PubDate  string
-	AudioUrl string
+	Title      string
+	Author     string
+	Url        string
+	UnixTime   int64
+	Content    string
+	PubDate    string
+	PubDateRaw time.Time
+	AudioUrl   string
+	Hash string
 }
 
 type Payload struct {
@@ -48,6 +53,14 @@ func isItemRecent(date *time.Time, days int) bool {
 	return date.After(cutoffTime)
 }
 
+func md5Hash(text string) string {
+	hasher := md5.New()
+	hasher.Write([]byte(text))
+	hashBytes := hasher.Sum(nil)
+	hashString := hex.EncodeToString(hashBytes)
+	return hashString
+}
+
 func isAudioType(mimeType string) bool {
 	audioTypes := []string{
 		"audio/mpeg", "audio/mp3", "audio/mp4", "audio/x-m4a",
@@ -64,7 +77,7 @@ func isAudioType(mimeType string) bool {
 	return false
 }
 
-func (p *Payload) parseFeed(feedUrl string) error {
+func (p *Payload) parseFeed(feedUrl string, daysSpan int) error {
 	fp := gofeed.NewParser()
 	feed, err := fp.ParseURL(feedUrl)
 
@@ -81,11 +94,13 @@ func (p *Payload) parseFeed(feedUrl string) error {
 		}
 
 		newItem := Item{
-			Author:  feed.Title,
-			Title:   item.Title,
-			Url:     item.Link,
-			Content: item.Content,
-			PubDate: item.Published,
+			Author:     feed.Title,
+			Title:      item.Title,
+			Url:        item.Link,
+			Content:    item.Content,
+			PubDate:    item.Published,
+			PubDateRaw: *item.PublishedParsed,
+			Hash: md5Hash(item.Link),
 		}
 
 		if itunesExt := feed.ITunesExt; itunesExt != nil {
@@ -99,7 +114,7 @@ func (p *Payload) parseFeed(feedUrl string) error {
 			}
 		}
 
-		if isItemRecent(item.PublishedParsed, 7) {
+		if isItemRecent(item.PublishedParsed, daysSpan) {
 			p.Items = append(p.Items, newItem)
 		}
 	}
@@ -141,7 +156,7 @@ func main() {
 
 	feedFile := flag.String("feed-file", "", "URL of the file to download")
 	outDirectory := flag.String("out-dir", ".", "Directory to save the downloaded file")
-	_ = outDirectory
+	daysSpan := flag.Int("days-span", 7, "Number of days")
 
 	flag.Parse()
 
@@ -160,7 +175,7 @@ func main() {
 	}
 
 	for _, feed := range payload.Feeds {
-		err = payload.parseFeed(feed)
+		err = payload.parseFeed(feed, *daysSpan)
 		if err != nil {
 			log.Println(err)
 			panic(err)
@@ -174,8 +189,15 @@ func main() {
 	}
 	defer outFile.Close()
 
-	file, _ := content.ReadFile("template.html")
-	tmpl, _ := template.New("").Parse(string(file))
+	funcMap := template.FuncMap{
+		"inc": func(i int) int {
+			return i + 1
+		},
+	}
+
+	file, _ := content.ReadFile("templates/advanced.html")
+	// tmpl, _ := template.New("").Parse(string(file))
+	tmpl, _ := template.New("").Funcs(funcMap).Parse(string(file))
 	tmpl.Execute(outFile, payload)
 	log.Printf("export file://%s", outPath)
 }

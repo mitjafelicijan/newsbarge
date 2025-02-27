@@ -13,5 +13,5 @@ go install .
 I put my alias to my bashrc file
 
 ```console
-alias barge='newsbarge -feed-file=/home/m/.feeds.txt -out-dir=/home/m/Downloads'
+alias newsbarge='newsbarge -feed-file=/home/m/.feeds.txt -out-dir=/home/m/Downloads -days-span=14'
 ```

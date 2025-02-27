@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>newsbarge</title>
+		<meta name="viewport" content="width=device-width,initial-scale=1">
+		<style>
+			:root {
+				--foreground: black;
+				--background: white;
+			}
+			body { background: var(--background); color: var(--foreground); }
+			table {
+				width: 100%;
+				overflow-y: auto;
+				height: 300px;
+				display: block;
+				text-align: left;
+				background: var(--background);
+			}
+
+			thead { position: sticky; top: 0; }
+			tbody, thead { display: table; width: 100%; background: var(--background); }
+			tbody tr { cursor: pointer; }
+			audio { min-width: 40em; }
+			iframe { width: 600px; height: 400px; }
+			.read { color: darkgray; }
+		</style>
+	</head>
+	<body>
+		<table border="1">
+			<thead>
+				<tr>
+					<th>#</th>
+					<th>Title</th>
+					<th>Author</th>
+					<th>PubDate</th>
+					<th>Type</th>
+				</tr>
+			</thead>
+			<tbody>
+				{{ range $i, $item := .Items }}
+				<tr data-url="{{ .Url }}" data-hash="{{ .Hash }}">
+					<td>{{ inc $i }}</td>
+					<td>{{ .Title }}</a>
+					<td>{{ .Author }}</a>
+					<td>{{ .PubDateRaw.Format "02 Jan 2006" }}</a>
+					<td>{{ if .AudioUrl }}podcast{{ else }}post{{ end }}</td>
+					<template>
+						<div>
+							<h1>{{ .Title }}</h1>
+							<p><a href="{{ .Url }}" target="_blank">{{ .Url }}</a></p>
+							{{ if .AudioUrl }}
+							<div>
+								<audio controls>
+									<source src="{{ .AudioUrl }}" type="audio/mpeg">
+									Your browser does not support the audio element.
+								</audio>
+							</div>
+							{{ end }}
+							<div>{{ .Content }}</div>
+						</div>
+					</template>
+				</tr>
+				{{ end }}
+			</tbody>
+		</table>
+
+		<main></main>
+
+		<script>
+			const cellWidths = [];
+			document.querySelectorAll("table tbody tr:first-child td").forEach((cell, idx) => {
+				cellWidths.push(cell.getBoundingClientRect().width);
+			});
+
+			// Fix thead cell widths.
+			document.querySelectorAll("table thead tr").forEach(row => {
+				row.querySelectorAll("th").forEach((cell, idx) => {
+					cell.style.width = `${cellWidths[idx]}px`;
+				});
+			});
+
+			// Fix tbody cell widths.
+			document.querySelectorAll("table tbody tr").forEach(row => {
+				row.querySelectorAll("td").forEach((cell, idx) => {
+					cell.style.width = `${cellWidths[idx]}px`;
+				});
+			});
+
+			// Check for read items.
+			document.querySelectorAll("table tbody tr").forEach(row => {
+				if(localStorage.getItem(`newsbarge-${row.dataset.hash}`)) {
+					row.classList.add("read");
+				}
+			});
+
+			const main = document.querySelector("main");
+			document.querySelectorAll("table tr").forEach(row => {
+				row.addEventListener("click", evt => {
+					const clone = row.querySelector("template").content.cloneNode(true);
+
+					const url = new URL(row.dataset.url);
+					if (url.hostname == "www.youtube.com") {
+						const iframe = document.createElement("iframe");
+						iframe.src = `https://www.youtube.com/embed/${url.searchParams.get('v')}`;
+						clone.appendChild(iframe);
+					}
+
+					main.innerHTML = "";
+					main.appendChild(clone);
+
+					localStorage.setItem(`newsbarge-${row.dataset.hash}`, new Date());
+					row.classList.add("read");
+				});
+			});
+		</script>
+	</body>
+</html>
