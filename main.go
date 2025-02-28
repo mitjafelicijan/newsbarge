@@ -2,7 +2,9 @@ package main
 
 import (
 	"bufio"
+	"crypto/md5"
 	"embed"
+	"encoding/hex"
 	"flag"
 	"log"
 	"net/url"
@@ -11,14 +13,13 @@ import (
 	"strings"
 	"text/template"
 	"time"
-	"crypto/md5"
-	"encoding/hex"
 
 	"github.com/mmcdole/gofeed"
 )
 
 //go:embed templates/simple.html
 //go:embed templates/advanced.html
+//go:embed templates/frameset.html
 var content embed.FS
 
 type Item struct {
@@ -30,12 +31,13 @@ type Item struct {
 	PubDate    string
 	PubDateRaw time.Time
 	AudioUrl   string
-	Hash string
+	Hash       string
 }
 
 type Payload struct {
-	Items []Item
-	Feeds []string
+	GeneratedOn time.Time
+	Items       []Item
+	Feeds       []string
 }
 
 func isValidURL(str string) bool {
@@ -100,7 +102,7 @@ func (p *Payload) parseFeed(feedUrl string, daysSpan int) error {
 			Content:    item.Content,
 			PubDate:    item.Published,
 			PubDateRaw: *item.PublishedParsed,
-			Hash: md5Hash(item.Link),
+			Hash:       md5Hash(item.Link),
 		}
 
 		if itunesExt := feed.ITunesExt; itunesExt != nil {
@@ -167,6 +169,7 @@ func main() {
 	}
 
 	payload := &Payload{}
+	payload.GeneratedOn = time.Now()
 
 	err = payload.readFeedFile(*feedFile)
 	if err != nil {
@@ -182,7 +185,7 @@ func main() {
 		}
 	}
 
-	outPath := filepath.Join(*outDirectory, "newsbarge-recent.html")
+	outPath := filepath.Join(*outDirectory, "newsbarge.html")
 	outFile, err := os.Create(outPath)
 	if err != nil {
 		log.Fatalf("Failed to create output file: %v", err)
@@ -193,10 +196,21 @@ func main() {
 		"inc": func(i int) int {
 			return i + 1
 		},
+		"truncate": func(s string, length int) string {
+			if len(s) <= length {
+				return s
+			}
+
+			lastSpace := strings.LastIndex(s[:length], " ")
+			if lastSpace == -1 {
+				return s[:length] + "..."
+			}
+
+			return s[:lastSpace] + "..."
+		},
 	}
 
-	file, _ := content.ReadFile("templates/advanced.html")
-	// tmpl, _ := template.New("").Parse(string(file))
+	file, _ := content.ReadFile("templates/frameset.html")
 	tmpl, _ := template.New("").Funcs(funcMap).Parse(string(file))
 	tmpl.Execute(outFile, payload)
 	log.Printf("export file://%s", outPath)

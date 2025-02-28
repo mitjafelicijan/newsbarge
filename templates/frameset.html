@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>{{ .GeneratedOn.Format "02 Jan 2006" }} - newsbarge</title>
+		<meta name="viewport" content="width=device-width,initial-scale=1">
+	</head>
+
+	<script>
+		let listframe = null;
+		let contentframe = null;
+		let currenthash = null;
+
+		function initframes() {
+			const lf = document.querySelector("#list");
+			const cf = document.querySelector("#content");
+
+			listframe = lf.contentDocument || lf.contentWindow.document;
+			contentframe = cf.contentDocument || cf.contentWindow.document;
+
+			loadlist();
+
+			keyevents(window);
+			keyevents(listframe);
+			keyevents(contentframe);
+		}
+
+		function loadlist() {
+			const clone = document.querySelector("template#posts");
+			const content = clone.content.cloneNode(true);
+
+			// Check for already seen content.
+			content.querySelectorAll("table tbody tr").forEach(row => {
+				if(localStorage.getItem(`newsbarge-${row.dataset.hash}`)) {
+					row.classList.add("read");
+				}
+			});
+
+			listframe.body.appendChild(content);
+		}
+
+		function loadpost(row, hash) {
+			try {
+				const clone = document.querySelector(`template[data-hash="${hash}"]`);
+				const content = clone.content.cloneNode(true);
+
+				// Mark post as read.
+				row.classList.add("read");
+				localStorage.setItem(`newsbarge-${hash}`, new Date());
+
+				// Check for youtube embed link.
+				const url = new URL(clone.dataset.url);
+				if (url.hostname == "www.youtube.com") {
+					const iframe = document.createElement("iframe");
+					iframe.src = `https://www.youtube.com/embed/${url.searchParams.get('v')}`;
+					content.appendChild(iframe);
+				}
+
+				currenthash = hash;
+				contentframe.body.innerText = "";
+				contentframe.body.appendChild(content);
+			} catch {
+				console.error(`post "${hash}" does not exist in this context`);
+			}
+		}
+
+		function keyevents(frame) {
+			frame.addEventListener("keyup", evt => {
+				if (!["n", "p"].includes(evt.key)) return;
+				let row = null;
+
+				switch(evt.key) {
+					case "n": {
+						row = (currenthash === null)
+							? listframe.body.querySelector("table tbody tr:first-child")
+							: listframe.body.querySelector(`table tbody tr[data-hash="${currenthash}"]`).nextElementSibling;
+						break;
+					}
+					case "p": {
+						row = (currenthash === null)
+							? listframe.body.querySelector("table tbody tr:first-child")
+							: listframe.body.querySelector(`table tbody tr[data-hash="${currenthash}"]`).previousElementSibling;
+						break;
+					}
+				}
+
+				if (row) {
+					loadpost(row, row.dataset.hash);
+					row.scrollIntoView({ behavior: "smooth", block: "center" });
+				}
+			});
+		}
+	</script>
+
+	<template id="posts">
+		<section>
+			<style>
+				tr { cursor: pointer; }
+				.read { color: darkgray; }
+			</style>
+			<table border="1" width="100%">
+				<tbody>
+					{{ range $i, $item := .Items }}
+					<tr onclick="parent.loadpost(this, '{{ .Hash }}')" data-hash="{{ .Hash }}">
+						<td>{{ inc $i }}</td>
+						<td>{{ .Title }}</a>
+						<td>{{ truncate .Author 30 }}</a>
+						<td>{{ .PubDateRaw.Format "02 Jan 2006" }}</a>
+						<td>{{ if .AudioUrl }}podcast{{ else }}post{{ end }}</td>
+					</tr>
+					{{ end }}
+				</tbody>
+			</table>
+		</section>
+	</template>
+
+	{{ range $i, $item := .Items }}
+	<template data-url="{{ .Url }}" data-hash="{{ .Hash }}">
+		<div>
+			<style>
+				audio { width: 40em; margin-bottom: 1em; }
+				iframe { width: 600px; height: 400px; }
+			</style>
+			<h1>{{ .Title }}</h1>
+			<p><a href="{{ .Url }}" target="_blank">{{ .Url }}</a></p>
+			{{ if .AudioUrl }}
+			<div>
+				<audio controls>
+					<source src="{{ .AudioUrl }}" type="audio/mpeg">
+					Your browser does not support the audio element.
+				</audio>
+			</div>
+			{{ end }}
+			<div>{{ .Content }}</div>
+		</div>
+	</template>
+	{{ end }}
+
+	<frameset rows="300,*" frameborder="1" onload="initframes()">
+		<frame id="list">
+		<frame id="content">
+	</frameset>
+</html>

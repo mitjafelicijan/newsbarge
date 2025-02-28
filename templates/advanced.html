@@ -45,7 +45,7 @@
 				<tr data-url="{{ .Url }}" data-hash="{{ .Hash }}">
 					<td>{{ inc $i }}</td>
 					<td>{{ .Title }}</a>
-					<td>{{ .Author }}</a>
+					<td>{{ truncate .Author 30 }}</a>
 					<td>{{ .PubDateRaw.Format "02 Jan 2006" }}</a>
 					<td>{{ if .AudioUrl }}podcast{{ else }}post{{ end }}</td>
 					<template>
