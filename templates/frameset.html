@@ -58,6 +58,7 @@
 
 				currenthash = hash;
 				contentframe.body.innerText = "";
+				contentframe.body.scrollTo({ top: 0, left: 0 });
 				contentframe.body.appendChild(content);
 			} catch {
 				console.error(`post "${hash}" does not exist in this context`);
