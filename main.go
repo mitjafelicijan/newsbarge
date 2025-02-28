@@ -8,6 +8,7 @@ import (
 	"flag"
 	"log"
 	"net/url"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -81,10 +82,10 @@ func isAudioType(mimeType string) bool {
 
 func (p *Payload) parseFeed(feedUrl string, daysSpan int) error {
 	fp := gofeed.NewParser()
+	fp.Client = &http.Client{ Timeout: time.Second*15 }
 	feed, err := fp.ParseURL(feedUrl)
 
 	if err != nil {
-		log.Println(feedUrl, err)
 		return err
 	}
 
@@ -181,7 +182,7 @@ func main() {
 		err = payload.parseFeed(feed, *daysSpan)
 		if err != nil {
 			log.Println(err)
-			panic(err)
+			// panic(err)
 		}
 	}
 
