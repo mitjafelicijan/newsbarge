@@ -30,10 +30,28 @@
 			const content = clone.content.cloneNode(true);
 
 			// Check for already seen content.
+			const unreadonly = localStorage.getItem("newsbarge-unreadonly");
+			content.querySelector("input#unread").checked = localStorage.getItem("newsbarge-unreadonly");
 			content.querySelectorAll("table tbody tr").forEach(row => {
 				if(localStorage.getItem(`newsbarge-${row.dataset.hash}`)) {
 					row.classList.add("read");
+					if (unreadonly) {
+						row.classList.add("hide");
+					}
 				}
+			});
+
+			// Add controls like 'unread'.
+			content.querySelector("input#unread").addEventListener("change", evt => {
+				evt.target.checked
+					? localStorage.setItem("newsbarge-unreadonly", true)
+					: localStorage.removeItem("newsbarge-unreadonly");
+
+				listframe.body.querySelectorAll("table tbody tr").forEach(row => {
+					if(localStorage.getItem(`newsbarge-${row.dataset.hash}`)) {
+						evt.target.checked ? row.classList.add("hide") : row.classList.remove("hide");
+					}
+				});
 			});
 
 			listframe.body.appendChild(content);
@@ -97,16 +115,22 @@
 		<section>
 			<style>
 				tr { cursor: pointer; }
+				label { user-select: none; }
+				.controls { margin-bottom: 0.5em; }
+				.hide { display: none; }
 				.read { color: darkgray; }
 			</style>
+			<section class="controls">
+				<input type="checkbox" id="unread"> <label for="unread">Only unread posts</label>
+			</section>
 			<table border="1" width="100%">
 				<tbody>
 					{{ range $i, $item := .Items }}
 					<tr onclick="parent.loadpost(this, '{{ .Hash }}')" data-hash="{{ .Hash }}">
 						<td>{{ inc $i }}</td>
-						<td>{{ .Title }}</a>
-						<td>{{ truncate .Author 30 }}</a>
-						<td>{{ .PubDateRaw.Format "02 Jan 2006" }}</a>
+						<td>{{ .Title }}</td>
+						<td>{{ truncate .Author 30 }}</td>
+						<td>{{ .PubDateRaw.Format "02 Jan 2006" }}</td>
 						<td>{{ if .AudioUrl }}podcast{{ else }}post{{ end }}</td>
 					</tr>
 					{{ end }}
